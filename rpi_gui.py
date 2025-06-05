@@ -766,16 +766,15 @@ class MainWindow(QWidget):
             spi_send = [] #Generate an empty array to handle what message we are sending
             msg = spi_address_sets[spi_index].text()
             for j in range(2,len(spi_address_sets[spi_index].text()) - 1,2):
-                word = msg[j] + msg[j + 1]
-                spi_send.append(int(word,16))
-
-            msg = spi_message_sets[spi_index].text()
-            for j in range(2,len(spi_message_sets[spi_index].text()) - 1,2):
                 if(j == 2):
                     word = '8' + msg[j + 1]
                 else:
                     word = msg[j] + msg[j + 1]
-                    spi_send.append(int(word,16))
+                spi_send.append(int(word,16))
+
+            msg = spi_message_sets[spi_index].text()
+            for j in range(2,len(spi_message_sets[spi_index].text()) - 1,2):
+                word = msg[j] + msg[j + 1]
                 spi_send.append(int(word,16))
 
             readback = spi.xfer3(spi_send)
@@ -809,17 +808,17 @@ class MainWindow(QWidget):
                     spi_send = [] #Generate an empty array to handle what message we are sending
                     msg = spi_address_sets[i].text()
                     for j in range(2,len(spi_address_sets[i].text()) - 1,2):
-                        word = msg[j] + msg[j + 1]
+                        if(j == 2):
+                            word = '8' + msg[j + 1]
+                        else:
+                            word = msg[j] + msg[j + 1]
                         spi_send.append(int(word,16))
 
                     msg = spi_message_sets[i].text()
                     for j in range(2,len(spi_message_sets[i].text()) - 1,2):
                         ## using standard b1000 for first R/W identifier
-                        if(j == 2):
-                            word = '8' + msg[j + 1]
-                        else:
-                            word = msg[j] + msg[j + 1]
-                            spi_send.append(int(word,16))
+                        word = msg[j] + msg[j + 1]
+                        spi_send.append(int(word,16))
 
 
                     readback = spi.xfer3(spi_send)
@@ -847,22 +846,22 @@ class MainWindow(QWidget):
             spi.open(0,chip)
             spi.max_speed_hz = speed
             spi.mode = mode
-            
+
             for i in range(address_count):
                     spi_send = [] #Generate an empty array to handle what message we are sending
                     msg = spi_address_sets[i].text()
                     for j in range(2,len(spi_address_sets[i].text()) - 1,2):
                         word = msg[j] + msg[j + 1]
                         spi_send.append(int(word,16))
-    
+
                     msg = spi_message_sets[i].text()
                     for j in range(2,len(spi_message_sets[i].text()) - 1,2):
                         word = msg[j] + msg[j + 1]
                         spi_send.append(int(word,16))
                     spi.xfer3(spi_send)
-    
+
                     print('\n sent %s \n' % (spi_send))
-    
+
             spi.close()
         
 
