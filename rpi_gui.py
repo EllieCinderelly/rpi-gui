@@ -1,17 +1,23 @@
 import sys
 import time
 import warnings
+import pandas as pd
+import os
 warnings.simplefilter(action='ignore', category=FutureWarning)
-import spidev
 from PyQt6.QtWidgets import (QGridLayout, QApplication, QWidget, QLabel, QPushButton,
                              QLineEdit, QCheckBox, QRadioButton, QScrollArea, QVBoxLayout,
                              QHBoxLayout, QTabWidget, QComboBox)
 from PyQt6.QtCore import QRect, Qt
 
-import pandas as pd
-import os
+if(sys.platform == 'liux'):
+    import spidev
+    import RPi.GPIO as GPIO
+else:
+    spidev = None
+    GPIO = None
+    
 import shutil
-import RPi.GPIO as GPIO
+
 
 
 button_width = 100
@@ -386,12 +392,12 @@ class MainWindow(QWidget):
         main_layout.addWidget(tabs)
         self.generate()
         self.whitespace()
-        #set GPIO for output and set all LOW at startup - uncomment on rpi
-        
-        for i in range(len(gpio_numbers)):
-            GPIO.setmode(GPIO.BOARD)
-            GPIO.setup(gpio_numbers[i], GPIO.OUT)
-            GPIO.output(gpio_numbers[i], 0)
+        #set GPIO for output and set all LOW at startup 
+        if GPIO:
+            for i in range(len(gpio_numbers)):
+                GPIO.setmode(GPIO.BOARD)
+                GPIO.setup(gpio_numbers[i], GPIO.OUT)
+                GPIO.output(gpio_numbers[i], 0)
         
         self.show()
     
@@ -574,12 +580,13 @@ class MainWindow(QWidget):
     #apply settings from loaded pins - uncomment for rpi
     
     def apply_pins(self):
-        for i in range(len(self.gpio_names)):
-            state = self.gpio_names[i].isChecked()   
-            if(state == False): 
-                GPIO.output(gpio_numbers[i], 0)
-            if(state == True): 
-                GPIO.output(gpio_numbers[i], 1)
+        if GPIO:
+            for i in range(len(self.gpio_names)):
+                state = self.gpio_names[i].isChecked()   
+                if(state == False): 
+                    GPIO.output(gpio_numbers[i], 0)
+                if(state == True): 
+                    GPIO.output(gpio_numbers[i], 1)
     
 
     def generate(self):
@@ -716,28 +723,28 @@ class MainWindow(QWidget):
         speed = int(self.speed.text())
         chip = int(self.device_box.currentIndex())
 
-        
-        spi = spidev.SpiDev()
-        spi.open(0,chip)
-        spi.max_speed_hz = speed
-        spi.mode = mode
-        
-        spi_send = [] #Generate an empty array to handle what message we are sending
-        msg = spi_address_sets[spi_index].text()
-        for j in range(2,len(spi_address_sets[spi_index].text()) - 1,2):
-            word = msg[j] + msg[j + 1]
-            spi_send.append(int(word,16))
+        if spidev:
+            spi = spidev.SpiDev()
+            spi.open(0,chip)
+            spi.max_speed_hz = speed
+            spi.mode = mode
 
-        msg = spi_message_sets[spi_index].text()
-        for j in range(2,len(spi_message_sets[spi_index].text()) - 1,2):
-            word = msg[j] + msg[j + 1]
-            spi_send.append(int(word,16))
+            spi_send = [] #Generate an empty array to handle what message we are sending
+            msg = spi_address_sets[spi_index].text()
+            for j in range(2,len(spi_address_sets[spi_index].text()) - 1,2):
+                word = msg[j] + msg[j + 1]
+                spi_send.append(int(word,16))
 
-        spi.xfer3(spi_send)
+            msg = spi_message_sets[spi_index].text()
+            for j in range(2,len(spi_message_sets[spi_index].text()) - 1,2):
+                word = msg[j] + msg[j + 1]
+                spi_send.append(int(word,16))
 
-        print('\n sent %s \n' % (spi_send))
+            spi.xfer3(spi_send)
 
-        spi.close()
+            print('\n sent %s \n' % (spi_send))
+
+            spi.close()
         
     
     def single_spi_read(self,spi_index):
@@ -749,32 +756,37 @@ class MainWindow(QWidget):
         mode = int(self.mode_box.currentIndex())
         speed = int(self.speed.text())
         chip = int(self.device_box.currentIndex())
-        
-        spi = spidev.SpiDev()
-        spi.open(0,chip)
-        spi.max_speed_hz = speed
-        spi.mode = mode
-        
-        spi_send = [] #Generate an empty array to handle what message we are sending
-        msg = spi_address_sets[spi_index].text()
-        for j in range(2,len(spi_address_sets[spi_index].text()) - 1,2):
-            word = msg[j] + msg[j + 1]
-            spi_send.append(int(word,16))
 
-        msg = spi_message_sets[spi_index].text()
-        for j in range(2,len(spi_message_sets[spi_index].text()) - 1,2):
-            word = msg[j] + msg[j + 1]
-            spi_send.append(int(word,16))
+        if spidev:
+            spi = spidev.SpiDev()
+            spi.open(0,chip)
+            spi.max_speed_hz = speed
+            spi.mode = mode
 
-        readback = spi.xfer3(spi_send)
-        readback_text = ''
-        for i in range(len(readback)):
-                readback_text = readback_text + str(readback[i]) + ','
-        spi_reg_readback_sets[spi_index].setText('%s' % readback_text)
+            spi_send = [] #Generate an empty array to handle what message we are sending
+            msg = spi_address_sets[spi_index].text()
+            for j in range(2,len(spi_address_sets[spi_index].text()) - 1,2):
+                word = msg[j] + msg[j + 1]
+                spi_send.append(int(word,16))
 
-        print('\n read %s \n' % (spi_send))
+            msg = spi_message_sets[spi_index].text()
+            for j in range(2,len(spi_message_sets[spi_index].text()) - 1,2):
+                if(j == 2):
+                    word = '8' + msg[j + 1]
+                else:
+                    word = msg[j] + msg[j + 1]
+                    spi_send.append(int(word,16))
+                spi_send.append(int(word,16))
 
-        spi.close()
+            readback = spi.xfer3(spi_send)
+            readback_text = ''
+            for i in range(len(readback)):
+                    readback_text = readback_text + str(readback[i]) + ','
+            spi_reg_readback_sets[spi_index].setText('%s' % readback_text)
+
+            print('\n read %s \n' % (spi_send))
+
+            spi.close()
         
 
     def spi_read(self):
@@ -787,37 +799,37 @@ class MainWindow(QWidget):
         speed = int(self.speed.text())
         chip = int(self.device_box.currentIndex())
 
-        
-        spi = spidev.SpiDev()
-        spi.open(0,chip)
-        spi.max_speed_hz = speed
-        spi.mode = mode
-        
-        for i in range(address_count):
-                spi_send = [] #Generate an empty array to handle what message we are sending
-                msg = spi_address_sets[i].text()
-                for j in range(2,len(spi_address_sets[i].text()) - 1,2):
-                    word = msg[j] + msg[j + 1]
-                    spi_send.append(int(word,16))
+        if spidev:
+            spi = spidev.SpiDev()
+            spi.open(0,chip)
+            spi.max_speed_hz = speed
+            spi.mode = mode
 
-                msg = spi_message_sets[i].text()
-                for j in range(2,len(spi_message_sets[i].text()) - 1,2):
-                    ## using standard b1000 for first R/W identifier
-                    if(j == 2):
-                        word = '8' + msg[j + 1]
-                    else:
+            for i in range(address_count):
+                    spi_send = [] #Generate an empty array to handle what message we are sending
+                    msg = spi_address_sets[i].text()
+                    for j in range(2,len(spi_address_sets[i].text()) - 1,2):
                         word = msg[j] + msg[j + 1]
                         spi_send.append(int(word,16))
 
-                
-                readback = spi.xfer3(spi_send)
-                print(readback)
-                readback_text = ''
-                for j in range(len(readback)):
-                        readback_text = readback_text + str(readback[j]) + ','
-                spi_reg_readback_sets[i].setText('%s' % readback_text)
+                    msg = spi_message_sets[i].text()
+                    for j in range(2,len(spi_message_sets[i].text()) - 1,2):
+                        ## using standard b1000 for first R/W identifier
+                        if(j == 2):
+                            word = '8' + msg[j + 1]
+                        else:
+                            word = msg[j] + msg[j + 1]
+                            spi_send.append(int(word,16))
 
-        spi.close()
+
+                    readback = spi.xfer3(spi_send)
+                    print(readback)
+                    readback_text = ''
+                    for j in range(len(readback)):
+                            readback_text = readback_text + str(readback[j]) + ','
+                    spi_reg_readback_sets[i].setText('%s' % readback_text)
+
+            spi.close()
         
 
 
@@ -830,28 +842,28 @@ class MainWindow(QWidget):
         speed = int(self.speed.text())
         chip = int(self.device_box.currentIndex())
 
-        
-        spi = spidev.SpiDev()
-        spi.open(0,chip)
-        spi.max_speed_hz = speed
-        spi.mode = mode
-        
-        for i in range(address_count):
-                spi_send = [] #Generate an empty array to handle what message we are sending
-                msg = spi_address_sets[i].text()
-                for j in range(2,len(spi_address_sets[i].text()) - 1,2):
-                    word = msg[j] + msg[j + 1]
-                    spi_send.append(int(word,16))
-
-                msg = spi_message_sets[i].text()
-                for j in range(2,len(spi_message_sets[i].text()) - 1,2):
-                    word = msg[j] + msg[j + 1]
-                    spi_send.append(int(word,16))
-                spi.xfer3(spi_send)
-
-                print('\n sent %s \n' % (spi_send))
-
-        spi.close()
+        if spidev:
+            spi = spidev.SpiDev()
+            spi.open(0,chip)
+            spi.max_speed_hz = speed
+            spi.mode = mode
+            
+            for i in range(address_count):
+                    spi_send = [] #Generate an empty array to handle what message we are sending
+                    msg = spi_address_sets[i].text()
+                    for j in range(2,len(spi_address_sets[i].text()) - 1,2):
+                        word = msg[j] + msg[j + 1]
+                        spi_send.append(int(word,16))
+    
+                    msg = spi_message_sets[i].text()
+                    for j in range(2,len(spi_message_sets[i].text()) - 1,2):
+                        word = msg[j] + msg[j + 1]
+                        spi_send.append(int(word,16))
+                    spi.xfer3(spi_send)
+    
+                    print('\n sent %s \n' % (spi_send))
+    
+            spi.close()
         
 
 if __name__ == '__main__':
