@@ -257,7 +257,7 @@ class MainWindow(QWidget):
         self.part_name.setText('Enter Part Name')
         self.part_name.setFixedWidth(240)
         self.part_name.setFixedHeight(30)
-        self.part_name.setStyleSheet('background-color: white; font: 10px')
+        self.part_name.setStyleSheet('color: black; background-color: white; font: 10px')
         #self.part_name.setStyleSheet('border: 4px: border-color: green;')
 
         #apply states button

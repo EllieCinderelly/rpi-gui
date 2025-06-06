@@ -1,0 +1,17 @@
+GPIO_pins,GPIO_names,SPI_count,SPI_Address,SPI_Message,SPI_settings,SPI_Label
+1,REG_EN,7.0,0xFF,0xFF,0.0,base
+0,GPIO 18,,0x01,0xFF,25000.0,freq_sel
+1,SW1,,0x02,0xFF,0.0,REG 2
+1,SW2,,0x63,0x32,0.0,REG 3
+0,GPIO 23,,0xFF,0xFF,,REG 4
+0,GPIO 24,,0xFF,0xFF,,REG 5
+0,GPIO 25,,0xFF,0xFF,,REG 6
+0,GPIO 5,,,,,
+0,GPIO 6,,,,,
+0,GPIO 12,,,,,
+0,GPIO 13,,,,,
+0,GPIO 19,,,,,
+0,GPIO 16,,,,,
+0,GPIO 26,,,,,
+0,GPIO 20,,,,,
+0,GPIO 21,,,,,
